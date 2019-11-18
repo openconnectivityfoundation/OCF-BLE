@@ -1,0 +1,95 @@
+
+{
+	"id": "http://openinterconnect.org/bleocfmapping/schemas/org.bluetooth.profile.HTP.json#",
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"description" : "Copyright (c) 2018 Open Connectivity Foundation, Inc. All rights reserved.",
+	"title": "Health Thermometer",
+	"definitions": {
+		"byte": { 
+			"type": "integer",
+            "minimum": 0,
+            "maximum": 255
+		},
+		"byteArray": { 
+			"type": "array",
+            "items": { "$ref": "#/definitions/byte" },
+            "minItems": 1,
+            "uniqueItems": false
+		},
+		"org.bluetooth.characteristic.temperature_measurement" : {
+			"type": "object",
+			"properties" : {
+				"temperature_measurement[ length - 5 : length - 1 ]" : {
+					"$ref": "#/definitions/byteArray",
+					"description": "Temperature",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.temperature",
+						"x-to-ocf": [
+							"# convert IEEE11073 FLOAT to float",
+							"def ieee11073_Float_2_Float(float_value):",
+							    "# reserved value for Infinity or NaN (Not a Number)",
+							    "reserved_float_values = {",
+							        "0x007FFFFE:math.inf, # +INFINITY",
+							        "0x007FFFFF:math.nan, # NaN (Not a Number)",
+							        "0x00800000:math.nan, # NRes (Not at this Resolution)",
+							        "0x00800001:math.nan, # Reserved for future",
+							        "0x00800002:-math.inf # -INFINITY",
+							    "}",
+							    "mantissa = float_value & 0x00FFFFFF",
+							    "exponent = float_value >> 24",
+							    "if (exponent >= 0x00000080):",
+							        "exponent = -((0x000000FF + 1) - exponent)",
+							    "output = 0",
+							    "if (mantissa >= 0x007FFFFE and mantissa <= 0x00800002):",
+							        "output = reserved_float_values[mantissa]",
+							    "else:",
+							        "if (mantissa >= 0x00800000):",
+							            "mantissa = -((0x00FFFFFF + 1) - mantissa)",
+							        "magnitude = pow(10.0, exponent)",
+							        "output = (mantissa * magnitude)",
+							    "return output",
+							"length = len(temperature_measurement)",
+							"flags = temperature_measurement[length - 1]", 
+							"oic.r.temperature.temperature = ieee11073_Float_2_Float(temperature_measurement[ length - 5 : length - 1 ])",
+							"oic.r.temperature.units = 'F' if (flags & 0x01) else 'C'"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"temperature_measurement[ length - temperaturetype_len - timestamp_len - 5 ]" : {
+					"$ref": "#/definitions/byteArray",
+					"description": "Temperature Type",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.body.location.temperature",
+						"x-to-ocf": [
+							"length = len(temperature_measurement)",
+							"flags = temperature_measurement[length - 1]", 
+							"timestamp_len = 7 if (flags & 0x02) 0",
+							"temperaturetype_len = 1 if (flags & 0x04) 0",
+							"if (flags & 0x04):",
+							"   bloc = { 1:'xxx', 2:'body', 3:'ear', 4:'finger', 5:'gastro', 6:'mouth', 7:'rectum', 8:'toe', 9:'tympanum' }",
+							"   oic.r.body.location.temperature.bloc = bloc[temperature_measurement[ length - temperaturetype_len - timestamp_len - 5 ] ]"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				}
+			}
+		}
+	},
+	
+	"type": "object",
+
+	"allOf": [
+		{ "$ref": "#/definitions/byte" },
+		{ "$ref": "#/definitions/byteArray" },
+    	{ "$ref": "#/definitions/org.bluetooth.characteristic.temperature_measurement" }
+	],
+	
+	"required": [
+		"temperature_measurement[ length - 5 : length - 1 ]" 
+	]
+}

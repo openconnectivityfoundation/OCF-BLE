@@ -1,0 +1,341 @@
+
+{
+	"id": "http://openinterconnect.org/bleocfmapping/schemas/org.bluetooth.profile.GLP.json#",
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"description" : "Copyright (c) 2018 Open Connectivity Foundation, Inc. All rights reserved.",
+	"title": "Glucose",
+	"definitions": {
+        "byte": { 
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+        },
+        "byteArray": { 
+            "type": "array",
+            "items": { "$ref": "#/definitions/byte" },
+            "minItems": 1,
+            "uniqueItems": false
+        },
+		"org.bluetooth.characteristic.glucose_measurement": {
+			"type": "object",
+	  		"properties": {
+                "glucose_measurement[length - 2 - timeoffset_len - 10 : length - timeoffset_len - 10]": {
+                    "$ref": "#/definitions/byteArray",
+                    "description": "Glucose Concentration",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose", 
+                        "x-to-ocf": [
+                            "def ieee11073_Sfloat_2_Float(sfloat_value):",
+                                "# reserved value for Infinity or NaN (Not a Number)",
+                                "reserved_float_values = {",
+                                    "0x07FE:math.inf, # +INFINITY",
+                                    "0x07FF:math.nan, # NaN (Not a Number)",
+                                    "0x0800:math.nan, # NRes (Not at this Resolution)",
+                                    "0x0801:math.nan, # Reserved for future",
+                                    "0x0802:-math.inf # -INFINITY",
+                                "}",
+                                "mantissa = sfloat_value & 0x0FFF",
+                                "exponent = sfloat_value >> 12",
+                                "if (exponent >= 0x0008):",
+                                    "exponent = -((0x000F + 1) - exponent)",
+                                "output = 0",
+                                "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+                                    "output = reserved_float_values[mantissa]",
+                                "else:",
+                                    "if (mantissa >= 0x0800):",
+                                        "mantissa = -((0x0FFF + 1) - mantissa)",
+                                    "magnitude = pow(10.0, exponent)",
+                                    "output = (mantissa * magnitude)",
+                                "return output",
+                            "length = len(glucose_measurement)",
+                            "flags = glucose_measurement[length - 1]",
+                            "timeoffset_len = 2 if (flags & 0x01) else 0",
+                            "if (flags & 0x02) == True:",
+                            "   glucose = ieee11073_Sfloat_2_Float(glucose_measurement[length - 2 - timeoffset_len - 10 : length - timeoffset_len - 10])",
+                            "   oic.r.glucose.glucose = (glucose * 1000) if (flags & 0x04) else (glucose * 0.1 * 1000 * 1000)",
+                            "   oic.r.glucose.units = 'mmol/L' if (flags & 0x04) else 'mg/dL'",
+                            "if (flags & 0x02) == False:", 
+                            "   oic.r.glucose.glucose = 0",
+                            "   oic.r.glucose.units = 'mmol/L'"                         
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement[length - 1 - 2 - timeoffset_len - 10]": {
+                    "$ref": "#/definitions/byteArray",
+                    "description": "Sample Location", 
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.samplelocation", 
+                        "x-to-ocf": [
+                            "length = len(glucose_measurement)",
+                            "flags = glucose_measurement[length - 1]",
+                            "timeoffset_len = 2 if (flags & 0x01) else 0",
+                            "if (flags & 0x02):",
+                            "   samplelocation = { 1:'finger', 2:'ast', 3:'earlobe', 4:'ctrlsolution' }", 
+                            "   oic.r.glucose.samplelocation.samplelocation = samplelocation[glucose_measurement[length - 1 - 2 - timeoffset_len - 10] & 0xf0]"
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                }
+	  		}
+		}, 
+
+		"org.bluetooth.characteristic.glucose_measurement_context": {
+			"type": "object",
+            "properties": {
+                "glucose_measurement_context[length - carb_len - extflags_len - 3 : length - 1 - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "Carbohydrate",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.carb", 
+                        "x-to-ocf": [
+                            "def ieee11073_Sfloat_2_Float(sfloat_value):",
+                                "# reserved value for Infinity or NaN (Not a Number)",
+                                "reserved_float_values = {",
+                                    "0x07FE:math.inf, # +INFINITY",
+                                    "0x07FF:math.nan, # NaN (Not a Number)",
+                                    "0x0800:math.nan, # NRes (Not at this Resolution)",
+                                    "0x0801:math.nan, # Reserved for future",
+                                    "0x0802:-math.inf # -INFINITY",
+                                "}",
+                                "mantissa = sfloat_value & 0x0FFF",
+                                "exponent = sfloat_value >> 12",
+                                "if (exponent >= 0x0008):",
+                                    "exponent = -((0x000F + 1) - exponent)",
+                                "output = 0",
+                                "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+                                    "output = reserved_float_values[mantissa]",
+                                "else:",
+                                    "if (mantissa >= 0x0800):",
+                                        "mantissa = -((0x0FFF + 1) - mantissa)",
+                                    "magnitude = pow(10.0, exponent)",
+                                    "output = (mantissa * magnitude)",
+                                "return output",
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "carb_len = 3 if (flags & 0x01) else 0",
+                            "if (flags & 0x01): ",
+                            "   oic.r.glucose.carb.carb = ieee11073_Sfloat_2_Float(glucose_measurement_context[length - carb_len - extflags_len - 3 : length - 1 - extflags_len - 3]) * 1000" 
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement_context[length - 1 - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "Carbohydrate ID",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.carb", 
+                        "x-to-ocf": [
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "if (flags & 0x01): ",
+                            "   meal = { 1:'breakfast', 2:'lunch', 3:'dinner', 4:'snack', 5:'drink', 6:'supper', 7:'brunch' }", 
+                            "   oic.r.glucose.carb.meal = meal[glucose_measurement_context[length - 1 - extflags_len - 3]]"
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement_context[length - 2 - health_len - meal_len - carb_len - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "Exercise Intensity",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.exercise", 
+                        "x-to-ocf": [
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "carb_len = 3 if (flags & 0x01) else 0",
+                            "meal_len = 1 if (flags & 0x02) else 0",
+                            "health_len = 1 if (flags & 0x04) else 0",
+                            "if (flags & 0x08): ",
+                            "   oic.r.glucose.exercise.exercise = glucose_measurement_context[length - 2 - health_len - meal_len - carb_len - extflags_len - 3]" 
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement_context[length - hba1c_len - medication_len - exercise_len - health_len - meal_len - carb_len - extflags_len - 3 : length - medication_len - exercise_len - health_len - meal_len - carb_len - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "HbA1c",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.hba1c", 
+                        "x-to-ocf": [
+                            "def ieee11073_Sfloat_2_Float(sfloat_value):",
+                                "# reserved value for Infinity or NaN (Not a Number)",
+                                "reserved_float_values = {",
+                                    "0x07FE:math.inf, # +INFINITY",
+                                    "0x07FF:math.nan, # NaN (Not a Number)",
+                                    "0x0800:math.nan, # NRes (Not at this Resolution)",
+                                    "0x0801:math.nan, # Reserved for future",
+                                    "0x0802:-math.inf # -INFINITY",
+                                "}",
+                                "mantissa = sfloat_value & 0x0FFF",
+                                "exponent = sfloat_value >> 12",
+                                "if (exponent >= 0x0008):",
+                                    "exponent = -((0x000F + 1) - exponent)",
+                                "output = 0",
+                                "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+                                    "output = reserved_float_values[mantissa]",
+                                "else:",
+                                    "if (mantissa >= 0x0800):",
+                                        "mantissa = -((0x0FFF + 1) - mantissa)",
+                                    "magnitude = pow(10.0, exponent)",
+                                    "output = (mantissa * magnitude)",
+                                "return output",
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "carb_len = 3 if (flags & 0x01) else 0",
+                            "meal_len = 1 if (flags & 0x02) else 0",
+                            "health_len = 1 if (flags & 0x04) else 0",
+                            "exercise_len = 3 if (flags & 0x08) else 0",
+                            "medication_len = 3 if (flags & 0x10) else 0",
+                            "hba1c_len = 2 if (flags & 0x40) else 0",
+                            "if (flags & 0x40):",
+                            "   oic.r.glucose.hba1c.hba1c = ieee11073_Sfloat_2_Float(glucose_measurement_context[length - hba1c_len - medication_len - exercise_len - health_len - meal_len - carb_len - extflags_len - 3 : length - medication_len - exercise_len - health_len - meal_len - carb_len - extflags_len - 3])" 
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement_context[length - health_len - meal_len - carb_len - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "Health, Tester",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.health", 
+                        "x-to-ocf": [
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "carb_len = 3 if (flags & 0x01) else 0",
+                            "meal_len = 1 if (flags & 0x02) else 0",
+                            "health_len = 1 if (flags & 0x04) else 0",
+                            "if (flags & 0x04): ",
+                            "   health = { 1:'minor', 2:'major', 3:'menses', 4:'stress', 5:'none' }", 
+                            "   oic.r.glucose.health.health = health[glucose_measurement_context[length - health_len - meal_len - carb_len - extflags_len - 3] & 0xf0]", 
+                            "   tester = { 1:'self', 2:'hcp', 3:'lab' }", 
+                            "   oic.r.glucose.tester.tester = tester[glucose_measurement_context[length - health_len - meal_len - carb_len - extflags_len - 3] & 0x0f]" 
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement_context[length - meal_len - carb_len - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "Meal",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.meal", 
+                        "x-to-ocf": [
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "carb_len = 3 if (flags & 0x01) else 0",
+                            "meal_len = 1 if (flags & 0x02) else 0",
+                            "if (flags & 0x02): ",
+                            "   meal = { 1:'preprandial', 2:'postprandial', 3:'fasting', 4:'casual', 5:'bedtime' }", 
+                            "   oic.r.glucose.meal.meal = meal[glucose_measurement_context[length - meal_len - carb_len - extflags_len - 3]]" 
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement_context[length - medication_len - exercise_len - health_len - meal_len - carb_len - extflags_len - 3 : length - 1 - exercise_len - health_len - meal_len - carb_len - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "Medication",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.medication", 
+                        "x-to-ocf": [
+                            "def ieee11073_Sfloat_2_Float(sfloat_value):",
+                                "# reserved value for Infinity or NaN (Not a Number)",
+                                "reserved_float_values = {",
+                                    "0x07FE:math.inf, # +INFINITY",
+                                    "0x07FF:math.nan, # NaN (Not a Number)",
+                                    "0x0800:math.nan, # NRes (Not at this Resolution)",
+                                    "0x0801:math.nan, # Reserved for future",
+                                    "0x0802:-math.inf # -INFINITY",
+                                "}",
+                                "mantissa = sfloat_value & 0x0FFF",
+                                "exponent = sfloat_value >> 12",
+                                "if (exponent >= 0x0008):",
+                                    "exponent = -((0x000F + 1) - exponent)",
+                                "output = 0",
+                                "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+                                    "output = reserved_float_values[mantissa]",
+                                "else:",
+                                    "if (mantissa >= 0x0800):",
+                                        "mantissa = -((0x0FFF + 1) - mantissa)",
+                                    "magnitude = pow(10.0, exponent)",
+                                    "output = (mantissa * magnitude)",
+                                "return output",
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "carb_len = 3 if (flags & 0x01) else 0",
+                            "meal_len = 1 if (flags & 0x02) else 0",
+                            "health_len = 1 if (flags & 0x04) else 0",
+                            "exercise_len = 3 if (flags & 0x08) else 0",
+                            "medication_len = 3 if (flags & 0x10) else 0",
+                            "hba1c_len = 2 if (flags & 0x40) else 0",
+                            "if (flags & 0x10): ",
+                            "   medication = ieee11073_Sfloat_2_Float(glucose_measurement_context[length - medication_len - exercise_len - health_len - meal_len - carb_len - extflags_len - 3 : length - 1 - exercise_len - health_len - meal_len - carb_len - extflags_len - 3])",
+                            "   oic.r.glucose.medication.medication = medication * 1000", 
+                            "   oic.r.glucose.medication.units = 'mL' if (flags & 0x20) else 'mg'"
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                },
+                "glucose_measurement_context[length - 1 - exercise_len - health_len - meal_len - carb_len - extflags_len - 3]": {
+                    "$ref": "#/definitions/byteArray", 
+                    "description": "Medication ID",
+                    "x-ocf-conversion": {
+                        "x-ocf-alias": "oic.r.glucose.medication", 
+                        "x-to-ocf": [
+                            "length = len(glucose_measurement_context)",
+                            "flags = glucose_measurement_context[length - 1]",
+                            "extflags_len = 1 if (flags & 0x80) else 0",
+                            "carb_len = 3 if (flags & 0x01) else 0",
+                            "meal_len = 1 if (flags & 0x02) else 0",
+                            "health_len = 1 if (flags & 0x04) else 0",
+                            "exercise_len = 3 if (flags & 0x08) else 0",
+                            "if (flags & 0x10): ",
+                            "   regimen = { 1:'rapidacting', 2:'shortacting', 3:'intermediateacting', 4:'longacting', 5:'premix' }", 
+                            "   oic.r.glucose.medication.regimen = regimen[ glucose_measurement_context[length - 1 - exercise_len - health_len - meal_len - carb_len - extflags_len - 3] ]"
+                        ],
+                        "x-from-ocf": [
+                            "N/A"
+                        ]
+                    }
+                }
+            }
+		}
+	},
+	
+	"type": "object",
+
+	"allOf": [
+		{ "$ref": "#/definitions/byte" },
+		{ "$ref": "#/definitions/byteArray" },
+    	{ "$ref": "#/definitions/org.bluetooth.characteristic.org.bluetooth.characteristic.glucose_measurement" },
+    	{ "$ref": "#/definitions/org.bluetooth.characteristic.org.bluetooth.characteristic.glucose_measurement_context" }
+	],
+	
+	"required": [ 
+		"glucose_measurement[length - 2 - timeoffset_len - 10 : length - timeoffset_len - 10]"
+	]
+}

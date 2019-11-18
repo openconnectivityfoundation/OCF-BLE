@@ -1,0 +1,186 @@
+
+{
+	"id": "http://openinterconnect.org/bleocfmapping/schemas/org.bluetooth.profile.BLP.json#",
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"description" : "Copyright (c) 2018 Open Connectivity Foundation, Inc. All rights reserved.",
+	"title": "Blood Pressure",
+	"definitions": {
+		"byte": { 
+			"type": "integer",
+            "minimum": 0,
+            "maximum": 255
+		},
+		"byteArray": { 
+			"type": "array",
+            "items": { "$ref": "#/definitions/byte" },
+            "minItems": 1,
+            "uniqueItems": false
+		},
+		"org.bluetooth.characteristic.blood_pressure_measurement" : {
+			"type" : "object",
+			"properties": {
+				"blood_pressure_measurement[length - 3 : length - 1]": {
+					"$ref": "#/definitions/byteArray",
+					"description": "Blood Pressure Measurement Compound Value - Systolic",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.blood.pressure", 
+						"x-to-ocf": [
+							"def ieee11073_Sfloat_2_Float(sfloat_value):",
+							    "# reserved value for Infinity or NaN (Not a Number)",
+							    "reserved_float_values = {",
+							        "0x07FE:math.inf, # +INFINITY",
+							        "0x07FF:math.nan, # NaN (Not a Number)",
+							        "0x0800:math.nan, # NRes (Not at this Resolution)",
+							        "0x0801:math.nan, # Reserved for future",
+							        "0x0802:-math.inf # -INFINITY",
+							    "}",
+							    "mantissa = sfloat_value & 0x0FFF",
+							    "exponent = sfloat_value >> 12",
+							    "if (exponent >= 0x0008):",
+							        "exponent = -((0x000F + 1) - exponent)",
+							    "output = 0",
+							    "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+							        "output = reserved_float_values[mantissa]",
+							    "else:",
+							        "if (mantissa >= 0x0800):",
+							            "mantissa = -((0x0FFF + 1) - mantissa)",
+							        "magnitude = pow(10.0, exponent)",
+							        "output = (mantissa * magnitude)",
+							    "return output",
+							"length = len(blood_pressure_measurement)",
+							"flags = blood_pressure_measurement[length - 1]",
+							"oic.r.blood.pressure.systolic = ieee11073_Sfloat_2_Float(blood_pressure_measurement[length - 3 : length - 1])",
+							"oic.r.blood.pressure.units = \"mmHg\" if (flags & 0x01) else \"kPa\""
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"blood_pressure_measurement[length - 5 : length - 3]": {
+					"$ref": "#/definitions/byteArray",
+					"description": "Blood Pressure Measurement Compound Value - Diastolic",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.blood.pressure",
+						"x-to-ocf": [
+							"def ieee11073_Sfloat_2_Float(sfloat_value):",
+							    "# reserved value for Infinity or NaN (Not a Number)",
+							    "reserved_float_values = {",
+							        "0x07FE:math.inf, # +INFINITY",
+							        "0x07FF:math.nan, # NaN (Not a Number)",
+							        "0x0800:math.nan, # NRes (Not at this Resolution)",
+							        "0x0801:math.nan, # Reserved for future",
+							        "0x0802:-math.inf # -INFINITY",
+							    "}",
+							    "mantissa = sfloat_value & 0x0FFF",
+							    "exponent = sfloat_value >> 12",
+							    "if (exponent >= 0x0008):",
+							        "exponent = -((0x000F + 1) - exponent)",
+							    "output = 0",
+							    "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+							        "output = reserved_float_values[mantissa]",
+							    "else:",
+							        "if (mantissa >= 0x0800):",
+							            "mantissa = -((0x0FFF + 1) - mantissa)",
+							        "magnitude = pow(10.0, exponent)",
+							        "output = (mantissa * magnitude)",
+							    "return output",
+							"length = len(blood_pressure_measurement)",
+							"oic.r.blood.pressure.diastolic = ieee11073_Sfloat_2_Float(blood_pressure_measurement[length - 5 : length - 3])"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"blood_pressure_measurement[length - 7 : length - 5]": {
+					"$ref": "#/definitions/byteArray",
+					"description": "Blood Pressure Measurement Compound Value - Mean Arterial Pressure",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.blood.pressure",
+						"x-to-ocf": [
+							"def ieee11073_Sfloat_2_Float(sfloat_value):",
+							    "# reserved value for Infinity or NaN (Not a Number)",
+							    "reserved_float_values = {",
+							        "0x07FE:math.inf, # +INFINITY",
+							        "0x07FF:math.nan, # NaN (Not a Number)",
+							        "0x0800:math.nan, # NRes (Not at this Resolution)",
+							        "0x0801:math.nan, # Reserved for future",
+							        "0x0802:-math.inf # -INFINITY",
+							    "}",
+							    "mantissa = sfloat_value & 0x0FFF",
+							    "exponent = sfloat_value >> 12",
+							    "if (exponent >= 0x0008):",
+							        "exponent = -((0x000F + 1) - exponent)",
+							    "output = 0",
+							    "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+							        "output = reserved_float_values[mantissa]",
+							    "else:",
+							        "if (mantissa >= 0x0800):",
+							            "mantissa = -((0x0FFF + 1) - mantissa)",
+							        "magnitude = pow(10.0, exponent)",
+							        "output = (mantissa * magnitude)",
+							    "return output",
+							"length = len(blood_pressure_measurement)",
+							"oic.r.blood.pressure.map = ieee11073_Sfloat_2_Float(blood_pressure_measurement[length - 7 : length - 5])"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"blood_pressure_measurement[length - 7 - timestamp_len - 2 : length - 7 - timestamp_len]": {
+					"$ref": "#/definitions/byteArray",
+					"description": "Pulse Rate",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.pulserate", 
+						"x-to-ocf": [
+							"def ieee11073_Sfloat_2_Float(sfloat_value):",
+							    "# reserved value for Infinity or NaN (Not a Number)",
+							    "reserved_float_values = {",
+							        "0x07FE:math.inf, # +INFINITY",
+							        "0x07FF:math.nan, # NaN (Not a Number)",
+							        "0x0800:math.nan, # NRes (Not at this Resolution)",
+							        "0x0801:math.nan, # Reserved for future",
+							        "0x0802:-math.inf # -INFINITY",
+							    "}",
+							    "mantissa = sfloat_value & 0x0FFF",
+							    "exponent = sfloat_value >> 12",
+							    "if (exponent >= 0x0008):",
+							        "exponent = -((0x000F + 1) - exponent)",
+							    "output = 0",
+							    "if (mantissa >= 0x07FE and mantissa <= 0x0802):",
+							        "output = reserved_float_values[mantissa]",
+							    "else:",
+							        "if (mantissa >= 0x0800):",
+							            "mantissa = -((0x0FFF + 1) - mantissa)",
+							        "magnitude = pow(10.0, exponent)",
+							        "output = (mantissa * magnitude)",
+							    "return output",
+							"length = len(blood_pressure_measurement)",
+							"flags = blood_pressure_measurement[length - 1]",
+							"timestamp_len = 7 if (flags & 0x02) else 0",
+							"oic.r.pulserate.pulserate = ieee11073_Sfloat_2_Float(blood_pressure_measurement[length - 7 - timestamp_len - 2 : length - 7 - timestamp_len])"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				}
+			}
+		}
+	},
+	
+	"type": "object",
+
+	"allOf": [
+		{ "$ref": "#/definitions/byte" },
+		{ "$ref": "#/definitions/byteArray" },
+    	{ "$ref": "#/definitions/org.bluetooth.characteristic.blood_pressure_measurement" }
+	],
+	
+	"required": [
+		"blood_pressure_measurement[length - 3 : length - 1]", 
+		"blood_pressure_measurement[length - 5 : length - 3]"
+	]
+}

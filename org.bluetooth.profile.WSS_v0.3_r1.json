@@ -1,0 +1,189 @@
+
+{
+	"id": "http://openinterconnect.org/bleocfmapping/schemas/org.bluetooth.profile.WSS.json#",
+	"$schema": "http://json-schema.org/draft-04/schema#",
+	"description" : "Copyright (c) 2018 Open Connectivity Foundation, Inc. All rights reserved.",
+	"title": "Weight Scale",
+	"definitions": {
+		"byte": { 
+			"type": "integer",
+            "minimum": 0,
+            "maximum": 255
+		},
+		"byteArray": { 
+			"type": "array",
+            "items": { "$ref": "#/definitions/byte" },
+            "minItems": 1,
+            "uniqueItems": false
+		},
+		"org.bluetooth.characteristic.weight_measurement" : {
+			"type": "object", 
+			"properties": {
+				"weight_measurement[length - 3 : length - 1]" : {
+					"$ref": "#/definitions/byteArray", 
+					"description": "Weight",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.weight", 
+						"x-to-ocf": [
+							"length = len(weight_measurement)",
+							"flags = weight_measurement[length - 1]",
+							"timeoffset_len = 7 if (flags & 0x02) else 0",
+							"oic.r.weight.weight = int.from_bytes(weight_measurement[length - 3 : length - 1], 'big')",
+							"oic.r.weight.units = 'lb' if (flags & 0x01) else 'kg'"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"weight_measurement[length - 2 - userid_len - timeoffset_len - 3 : length - userid_len - timeoffset_len - 3]" : {
+					"$ref": "#/definitions/byteArray", 
+					"description": "BMI",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.bmi", 
+						"x-to-ocf": [
+							"length = len(weight_measurement)",
+							"flags = weight_measurement[length - 1]",
+							"timeoffset_len = 7 if (flags & 0x02) else 0",
+							"userid_len = 1 if (flags & 0x04) else 0",
+							"if (flags & 0x08):",
+							"   oic.r.bmi.bmi = int.from_bytes(weight_measurement[length - 2 - userid_len - timeoffset_len - 3 : length - userid_len - timeoffset_len - 3], 'big')"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"weight_measurement[length - height_len - userid_len - timeoffset_len - 3 : length - 2 - userid_len - timeoffset_len - 3]" : {
+					"$ref": "#/definitions/byteArray", 
+					"description": "Height",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.height", 
+						"x-to-ocf": [
+							"length = len(weight_measurement)",
+							"flags = weight_measurement[length - 1]",
+							"timeoffset_len = 7 if (flags & 0x02) else 0",
+							"userid_len = 1 if (flags & 0x04) else 0",
+							"height_len = 4 if (flags & 0x08) else 0",
+							"if (flags & 0x08):",
+							"   oic.r.height.height = int.from_bytes(weight_measurement[length - height_len - userid_len - timeoffset_len - 3 : length - 2 - userid_len - timeoffset_len - 3], 'big')",
+							"   oic.r.height.units = 'in' if (flags & 0x01) else 'm'"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				}
+			}
+		}, 
+
+		"org.bluetooth.characteristic.body_composition_measurement" : {
+			"type": "object", 
+			"properties": {
+				"body_composition_measurement[ length - 4 : length - 2]" : {
+					"$ref": "#/definitions/byteArray", 
+					"description": "Body Fat Percentage",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.body.fat", 
+						"x-to-ocf": [
+							"length = len(body_composition_measurement)",
+							"oic.r.body.fat.bodyfat = int.from_bytes(body_composition_measurement[ length - 4 : length - 2], 'big')",
+							"oic.r.body.fat.units = '%'"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"body_composition_measurement[ length - bwm_len - slm_len - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 : length - slm_len - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 ]" : {
+					"$ref": "#/definitions/byteArray", 
+					"description": "Body Water Mass",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.body.water", 
+						"x-to-ocf": [
+							"length = len(body_composition_measurement)",
+							"flags_upperbyte = body_composition_measurement[length - 2]",
+							"flags_lowerbyte = body_composition_measurement[length - 1]",
+							"timestamp_len = 7 if (flags_lowerbyte & 0x02) else 0",
+							"userid_len = 1 if (flags_lowerbyte & 0x04) else 0",
+							"basal_len = 2 if (flags_lowerbyte & 0x08) else 0",
+							"muscle_len = 2 if (flags_lowerbyte & 0x10) else 0",
+							"mm_len = 2 if (flags_lowerbyte & 0x20) else 0",
+							"ffm_len = 2 if (flags_lowerbyte & 0x40) else 0",
+							"slm_len = 2 if (flags_lowerbyte & 0x80) else 0",
+							"bwm_len = 2 if (flags_upperbyte & 0x01) else 0",
+							"if (flags_lowerbyte & 0x01): ",
+							"   oic.r.body.water.bwater = int.from_bytes(body_composition_measurement[ length - bwm_len - slm_len - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 : length - slm_len - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 ], 'big')",
+							"   oic.r.body.water.units = 'lb' if (flags_lowerbyte & 0x01) 'kg'"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"body_composition_measurement[ length - slm_len - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 : length - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 ]" : {
+					"$ref": "#/definitions/byteArray", 
+					"description": "Soft Lean Mass",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.body.slm", 
+						"x-to-ocf": [
+							"length = len(body_composition_measurement)",
+							"flags_upperbyte = body_composition_measurement[length - 2]",
+							"flags_lowerbyte = body_composition_measurement[length - 1]",
+							"timestamp_len = 7 if (flags_lowerbyte & 0x02) else 0",
+							"userid_len = 1 if (flags_lowerbyte & 0x04) else 0",
+							"basal_len = 2 if (flags_lowerbyte & 0x08) else 0",
+							"muscle_len = 2 if (flags_lowerbyte & 0x10) else 0",
+							"mm_len = 2 if (flags_lowerbyte & 0x20) else 0",
+							"ffm_len = 2 if (flags_lowerbyte & 0x40) else 0",
+							"slm_len = 2 if (flags_lowerbyte & 0x80) else 0",
+							"if (flags_lowerbyte & 0x01): ",
+							"   oic.r.body.slm.bwater = int.from_bytes(body_composition_measurement[ length - slm_len - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 : length - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 ], 'big')",
+							"   oic.r.body.slm.units = 'lb' if (flags_lowerbyte & 0x01) 'kg'"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				},
+				"body_composition_measurement[ length - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 : length - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 ]" : {
+					"$ref": "#/definitions/byteArray", 
+					"description": "Fat Free Mass",
+					"x-ocf-conversion": {
+						"x-ocf-alias": "oic.r.body.ffm", 
+						"x-to-ocf": [
+							"length = len(body_composition_measurement)",
+							"flags_upperbyte = body_composition_measurement[length - 2]",
+							"flags_lowerbyte = body_composition_measurement[length - 1]",
+							"timestamp_len = 7 if (flags_lowerbyte & 0x02) else 0",
+							"userid_len = 1 if (flags_lowerbyte & 0x04) else 0",
+							"basal_len = 2 if (flags_lowerbyte & 0x08) else 0",
+							"muscle_len = 2 if (flags_lowerbyte & 0x10) else 0",
+							"mm_len = 2 if (flags_lowerbyte & 0x20) else 0",
+							"ffm_len = 2 if (flags_lowerbyte & 0x40) else 0",
+							"if (flags_lowerbyte & 0x01): ",
+							"   oic.r.body.ffm.bwater = int.from_bytes(body_composition_measurement[ length - ffm_len - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 : length - mm_len - muscle_len - basal_len - userid_len - timestamp_len - 4 ], 'big')",
+							"   oic.r.body.ffm.units = 'lb' if (flags_lowerbyte & 0x01) 'kg'"
+						],
+						"x-from-ocf": [
+							"N/A"
+						]
+					}
+				}
+			}
+		}
+	},
+	
+	"type": "object",
+
+	"allOf": [
+		{ "$ref": "#/definitions/byte" },
+		{ "$ref": "#/definitions/byteArray" },
+    	{ "$ref": "#/definitions/org.bluetooth.characteristic.weight_measurement" },
+    	{ "$ref": "#/definitions/org.bluetooth.characteristic.body_composition_measurement" }
+	],
+	
+	"required": [
+		"weight_measurement[length - 3 : length - 1]" 
+	]
+}
